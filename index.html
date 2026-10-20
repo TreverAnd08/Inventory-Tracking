@@ -1,0 +1,569 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Theater Inventory</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;700&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #EDF0F4;
+    --surface: #FFFFFF;
+    --ink: #1C2333;
+    --muted: #5B6579;
+    --line: #D3D9E3;
+    --curtain: #9B1D3A;
+    --curtain-dark: #7F152E;
+    --tape: #F4C542;
+    --err: #B3261E;
+    --focus: #2F5DA8;
+    --display: "Bricolage Grotesque", "Trebuchet MS", system-ui, sans-serif;
+    --body: "Instrument Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font: 400 1rem/1.5 var(--body); }
+  [hidden] { display: none !important; }
+  :focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+  .wrap { max-width: 920px; margin: 0 auto; padding: 16px 16px 80px; }
+
+  h1, h2 { font-family: var(--display); margin: 0; line-height: 1.1; }
+  h1 { font-size: 1.6rem; font-weight: 700; }
+  h2 { font-size: 1.2rem; font-weight: 700; }
+
+  /* Buttons */
+  button, input, select { font: inherit; color: inherit; }
+  .btn { min-height: 44px; padding: 0 18px; border-radius: 8px; border: 1.5px solid var(--ink); background: var(--surface); font-weight: 600; cursor: pointer; }
+  .btn.primary { background: var(--curtain); border-color: var(--curtain); color: #fff; }
+  .btn.primary:hover { background: var(--curtain-dark); border-color: var(--curtain-dark); }
+  .btn.danger { border-color: var(--err); color: var(--err); }
+  .btn.quiet { border-color: transparent; background: transparent; text-decoration: underline; }
+  .btn:disabled { opacity: .5; cursor: not-allowed; }
+  .btn.small { min-height: 36px; padding: 0 12px; font-size: .9rem; }
+
+  /* Fields */
+  label { display: block; font-weight: 600; font-size: .92rem; margin-bottom: 4px; }
+  input[type=text], input[type=password], input[type=number], input[type=search], input[type=tel] {
+    width: 100%; min-height: 44px; padding: 0 12px; border: 1.5px solid var(--line); border-radius: 8px; background: var(--surface);
+  }
+  input:focus { border-color: var(--focus); }
+  .field { margin-bottom: 14px; }
+  .hint { color: var(--muted); font-size: .88rem; margin: 4px 0 0; }
+  .error { color: var(--err); font-weight: 500; min-height: 1.5em; margin: 8px 0 0; }
+
+  /* Login */
+  #loginView { max-width: 380px; padding-top: 12vh; }
+  #loginView p.lead { color: var(--muted); margin: 8px 0 24px; }
+  #loginView .btn { width: 100%; }
+
+  /* Top bar and tabs */
+  .top { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 0 16px; }
+  .who { display: flex; align-items: center; gap: 4px; color: var(--muted); font-size: .92rem; }
+  .who strong { color: var(--ink); }
+  .tabs { display: flex; gap: 4px; border-bottom: 1.5px solid var(--line); margin-bottom: 16px; }
+  .tab { min-height: 44px; padding: 0 14px; background: none; border: 0; border-bottom: 3px solid transparent; margin-bottom: -1.5px; font-weight: 600; color: var(--muted); cursor: pointer; }
+  .tab[aria-selected=true] { color: var(--ink); border-bottom-color: var(--curtain); }
+
+  /* Toolbar and chips */
+  .toolbar { display: flex; gap: 10px; margin-bottom: 12px; }
+  .toolbar .grow { flex: 1; }
+  .chips { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 6px; margin-bottom: 8px; }
+  .chip { flex: none; min-height: 36px; padding: 0 14px; border-radius: 999px; border: 1.5px solid var(--line); background: var(--surface); cursor: pointer; font-weight: 500; }
+  .chip[aria-pressed=true] { background: var(--ink); border-color: var(--ink); color: #fff; }
+
+  /* Item list */
+  .list { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 0 16px; }
+  .row { display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center; padding: 14px 0; border-bottom: 1px solid var(--line); }
+  .row:last-child { border-bottom: 0; }
+  .name { background: none; border: 0; padding: 0; text-align: left; font-weight: 600; font-size: 1.08rem; cursor: pointer; }
+  .name:hover { text-decoration: underline; }
+  .meta { color: var(--muted); font-size: .9rem; }
+  .meta span + span::before { content: "/"; margin: 0 .5em; color: var(--line); }
+  .tape {
+    display: inline-block; margin-top: 6px; padding: 3px 12px; background: var(--tape); color: #2B2200; font-size: .8rem;
+    clip-path: polygon(0 0, 100% 0, 98% 25%, 100% 50%, 98% 75%, 100% 100%, 0 100%, 2% 75%, 0 50%, 2% 25%);
+  }
+  .stepper { display: flex; align-items: center; gap: 6px; }
+  .step { width: 44px; height: 44px; border-radius: 10px; border: 1.5px solid var(--ink); background: var(--surface); font-size: 1.4rem; line-height: 1; cursor: pointer; }
+  .step.plus { background: var(--ink); color: #fff; }
+  .step:disabled { opacity: .35; cursor: not-allowed; }
+  .qty { min-width: 3ch; text-align: center; font: 700 1.7rem/1 var(--display); }
+  .qty.zero { color: var(--curtain); }
+  .empty { padding: 32px 0; color: var(--muted); text-align: center; }
+  .row.flash { animation: flash 2.4s ease-out; }
+  @keyframes flash { 0%, 40% { background: #FFF3C4; } 100% { background: transparent; } }
+  @media (prefers-reduced-motion: reduce) { .row.flash { animation: none; background: #FFF3C4; } }
+
+  /* Activity and students */
+  .feed { list-style: none; margin: 0; padding: 0 16px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
+  .feed li { padding: 12px 0; border-bottom: 1px solid var(--line); }
+  .feed li:last-child { border-bottom: 0; }
+  .feed time { display: block; color: var(--muted); font-size: .85rem; }
+  .panel { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; margin-bottom: 16px; }
+  .panel form { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; align-items: end; }
+  .panel .field { margin: 0; }
+  .urow { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+  .urow:last-child { border-bottom: 0; }
+  .urow .actions { display: flex; gap: 8px; }
+
+  /* Dialog and toast */
+  dialog { border: 0; border-radius: 14px; padding: 22px; width: calc(100% - 32px); max-width: 420px; color: var(--ink); }
+  dialog::backdrop { background: rgba(28, 35, 51, .55); }
+  dialog h2 { margin-bottom: 16px; }
+  .dlg-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
+  .dlg-actions .spacer { flex: 1; }
+  #toast { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); max-width: calc(100% - 32px); padding: 12px 18px; border-radius: 8px; background: var(--ink); color: #fff; font-weight: 500; opacity: 0; pointer-events: none; transition: opacity .2s; }
+  #toast.show { opacity: 1; }
+  #toast.bad { background: var(--err); }
+</style>
+</head>
+<body>
+
+<main class="wrap">
+
+  <!-- Sign in -->
+  <section id="loginView" hidden>
+    <h1>Theater Inventory</h1>
+    <p class="lead">Sign in with the username and PIN your admin gave you.</p>
+    <form id="loginForm" autocomplete="on">
+      <div class="field">
+        <label for="username">Username</label>
+        <input id="username" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" required>
+      </div>
+      <div class="field">
+        <label for="pin">PIN</label>
+        <input id="pin" type="password" inputmode="numeric" autocomplete="current-password" required>
+      </div>
+      <button class="btn primary" id="loginBtn" type="submit">Sign in</button>
+      <p class="error" id="loginError" role="alert"></p>
+    </form>
+  </section>
+
+  <!-- App -->
+  <section id="mainView" hidden>
+    <header class="top">
+      <h1>Theater Inventory</h1>
+      <div class="who">
+        <span>Signed in as <strong id="whoName"></strong></span>
+        <button class="btn quiet small" id="signOutBtn" type="button">Sign out</button>
+      </div>
+    </header>
+
+    <nav class="tabs" role="tablist">
+      <button class="tab" role="tab" data-tab="items" id="tabItems">Items</button>
+      <button class="tab" role="tab" data-tab="activity" id="tabActivity">Activity</button>
+      <button class="tab" role="tab" data-tab="students" id="tabStudents" hidden>Students</button>
+    </nav>
+
+    <div id="paneItems">
+      <div class="toolbar">
+        <input class="grow" id="search" type="search" placeholder="Search items, places, categories" aria-label="Search items">
+        <button class="btn primary" id="addBtn" type="button">Add item</button>
+      </div>
+      <div class="chips" id="chips"></div>
+      <div class="list" id="list"></div>
+    </div>
+
+    <div id="paneActivity" hidden>
+      <ul class="feed" id="feed"></ul>
+    </div>
+
+    <div id="paneStudents" hidden>
+      <div class="panel">
+        <h2>Add a student account</h2>
+        <p class="hint" style="margin:6px 0 14px">Give them the username and PIN in person. They can sign in from any device.</p>
+        <form id="userForm">
+          <div class="field"><label for="uName">Name shown in the log</label><input id="uName" type="text" maxlength="40" required></div>
+          <div class="field"><label for="uUser">Username</label><input id="uUser" type="text" autocapitalize="none" spellcheck="false" maxlength="30" required></div>
+          <div class="field"><label for="uPin">PIN (4 to 8 digits)</label><input id="uPin" type="tel" inputmode="numeric" pattern="\d{4,8}" maxlength="8" required></div>
+          <button class="btn primary" type="submit">Add student</button>
+        </form>
+      </div>
+      <div class="panel" id="userList"></div>
+    </div>
+  </section>
+</main>
+
+<!-- Add / edit item -->
+<dialog id="itemDialog">
+  <form id="itemForm">
+    <h2 id="dlgTitle">Add item</h2>
+    <input type="hidden" id="fId">
+    <div class="field"><label for="fName">Item name</label><input id="fName" type="text" maxlength="80" required></div>
+    <div class="field"><label for="fQty">How many</label><input id="fQty" type="number" min="0" step="1" inputmode="numeric" required></div>
+    <div class="field"><label for="fLoc">Where it is kept</label><input id="fLoc" type="text" maxlength="60" placeholder="Shelf B, prop closet"></div>
+    <div class="field">
+      <label for="fCat">Category</label>
+      <input id="fCat" type="text" maxlength="40" list="catList" placeholder="Props, lighting, costumes">
+      <datalist id="catList"></datalist>
+    </div>
+    <div class="dlg-actions">
+      <button class="btn primary" id="saveBtn" type="submit">Save</button>
+      <button class="btn" id="cancelBtn" type="button">Cancel</button>
+      <span class="spacer"></span>
+      <button class="btn small" id="linkBtn" type="button">Copy tag link</button>
+      <button class="btn danger small" id="deleteBtn" type="button">Delete</button>
+    </div>
+  </form>
+</dialog>
+
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+/* ============================================================
+   SETUP: paste your Google Apps Script Web app URL between the quotes.
+   See README.md, step 2.
+   ============================================================ */
+const API_URL = "PASTE_YOUR_WEB_APP_URL_HERE";
+
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+const state = { token: null, user: null, items: [], loaded: false, tab: "items", filter: "All", q: "", pending: 0 };
+
+/* ---------- Storage (safe if the browser blocks it) ---------- */
+function save(key, value) { try { value == null ? localStorage.removeItem(key) : localStorage.setItem(key, value); } catch (e) {} }
+function read(key) { try { return localStorage.getItem(key); } catch (e) { return null; } }
+
+/* ---------- API ---------- */
+async function api(action, data) {
+  if (API_URL.indexOf("PASTE_") === 0) throw new Error("Setup is not finished. Add your Web app URL to API_URL in index.html.");
+  let res;
+  try {
+    res = await fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify(Object.assign({ action: action, token: state.token }, data || {}))
+    });
+  } catch (e) {
+    throw new Error("Could not reach the server. Check your connection and try again.");
+  }
+  let out;
+  try { out = await res.json(); } catch (e) { throw new Error("The server sent an unexpected reply. Try again."); }
+  if (!out.ok) {
+    if (out.code === "auth") signOut(true);
+    throw new Error(out.error || "Something went wrong.");
+  }
+  return out;
+}
+
+/* ---------- Helpers ---------- */
+function ago(iso) {
+  const t = new Date(iso).getTime();
+  if (!iso || isNaN(t)) return "";
+  const s = (Date.now() - t) / 1000;
+  if (s < 60) return "just now";
+  if (s < 3600) return Math.floor(s / 60) + " min ago";
+  if (s < 86400) return Math.floor(s / 3600) + " hr ago";
+  if (s < 604800) return Math.floor(s / 86400) + " days ago";
+  return new Date(t).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}
+function when(iso) {
+  const d = new Date(iso);
+  return isNaN(d) ? "" : d.toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+}
+let toastTimer;
+function toast(msg, bad) {
+  const el = $("#toast");
+  el.textContent = msg;
+  el.className = "show" + (bad ? " bad" : "");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { el.className = ""; }, bad ? 5000 : 2500);
+}
+function categories() {
+  return Array.from(new Set(state.items.map((i) => i.category).filter(Boolean))).sort((a, b) => a.localeCompare(b));
+}
+
+/* ---------- Sign in / out ---------- */
+function show(view) {
+  $("#loginView").hidden = view !== "login";
+  $("#mainView").hidden = view !== "main";
+}
+function signOut(expired) {
+  state.token = null; state.user = null; state.items = []; state.loaded = false;
+  save("ti_token", null); save("ti_user", null);
+  show("login");
+  $("#loginError").textContent = expired === true ? "Your session ended. Please sign in again." : "";
+}
+$("#loginForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const btn = $("#loginBtn");
+  btn.disabled = true;
+  $("#loginError").textContent = "";
+  try {
+    const out = await api("login", { username: $("#username").value, pin: $("#pin").value });
+    state.token = out.token; state.user = out.user;
+    save("ti_token", out.token); save("ti_user", JSON.stringify(out.user));
+    $("#pin").value = "";
+    enterApp();
+  } catch (err) {
+    $("#loginError").textContent = err.message;
+  } finally {
+    btn.disabled = false;
+  }
+});
+$("#signOutBtn").addEventListener("click", () => signOut(false));
+
+async function enterApp() {
+  show("main");
+  $("#whoName").textContent = state.user.name;
+  $("#tabStudents").hidden = state.user.role !== "admin";
+  setTab("items");
+  await refresh(true);
+  jumpToHash();
+}
+
+/* ---------- Tabs ---------- */
+function setTab(tab) {
+  state.tab = tab;
+  document.querySelectorAll(".tab").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.tab === tab)));
+  $("#paneItems").hidden = tab !== "items";
+  $("#paneActivity").hidden = tab !== "activity";
+  $("#paneStudents").hidden = tab !== "students";
+  if (tab === "activity") loadActivity();
+  if (tab === "students") loadUsers();
+}
+document.querySelectorAll(".tab").forEach((b) => b.addEventListener("click", () => setTab(b.dataset.tab)));
+
+/* ---------- Items ---------- */
+async function refresh(showError) {
+  try {
+    const out = await api("list");
+    if (state.pending === 0) { state.items = out.items; state.loaded = true; renderItems(); }
+  } catch (e) {
+    if (showError) toast(e.message, true);
+    if (!state.loaded) { state.loaded = true; renderItems(); }
+  }
+}
+
+function renderItems() {
+  const cats = categories();
+  if (state.filter !== "All" && cats.indexOf(state.filter) < 0) state.filter = "All";
+  $("#chips").innerHTML = ["All"].concat(cats).map((c) =>
+    `<button class="chip" type="button" data-cat="${esc(c)}" aria-pressed="${c === state.filter}">${esc(c)}</button>`).join("");
+
+  const q = state.q.trim().toLowerCase();
+  const list = state.items
+    .filter((i) => (state.filter === "All" || i.category === state.filter) &&
+      (!q || (i.name + " " + i.location + " " + i.category).toLowerCase().indexOf(q) >= 0))
+    .sort((a, b) => a.name.localeCompare(b.name));
+
+  if (!state.loaded) { $("#list").innerHTML = '<div class="empty">Loading items…</div>'; return; }
+  if (!list.length) {
+    $("#list").innerHTML = state.items.length
+      ? '<div class="empty">Nothing matches. Try a different search or category.</div>'
+      : '<div class="empty">No items yet. Select Add item to log the first one.</div>';
+    return;
+  }
+  $("#list").innerHTML = list.map((i) => {
+    const meta = [i.location, i.category].filter(Boolean).map((m) => `<span>${esc(m)}</span>`).join("");
+    const tape = i.by ? `<span class="tape">Last changed by <b>${esc(i.by)}</b>, ${esc(ago(i.at))}</span>` : "";
+    return `<div class="row" data-row="${esc(i.id)}">
+      <div>
+        <button class="name" type="button" data-act="edit" data-id="${esc(i.id)}">${esc(i.name)}</button>
+        <div class="meta">${meta}</div>
+        ${tape}
+      </div>
+      <div class="stepper">
+        <button class="step" type="button" data-act="minus" data-id="${esc(i.id)}" aria-label="Take one ${esc(i.name)}" ${i.qty <= 0 ? "disabled" : ""}>\u2212</button>
+        <span class="qty ${i.qty <= 0 ? "zero" : ""}" aria-label="${i.qty} in stock">${i.qty}</span>
+        <button class="step plus" type="button" data-act="plus" data-id="${esc(i.id)}" aria-label="Add one ${esc(i.name)}">+</button>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+$("#search").addEventListener("input", (e) => { state.q = e.target.value; renderItems(); });
+$("#chips").addEventListener("click", (e) => {
+  const b = e.target.closest("[data-cat]");
+  if (b) { state.filter = b.dataset.cat; renderItems(); }
+});
+$("#list").addEventListener("click", (e) => {
+  const b = e.target.closest("[data-act]");
+  if (!b) return;
+  const id = b.dataset.id;
+  if (b.dataset.act === "minus") adjust(id, -1);
+  if (b.dataset.act === "plus") adjust(id, 1);
+  if (b.dataset.act === "edit") openDialog(state.items.find((i) => i.id === id));
+});
+
+async function adjust(id, delta) {
+  const it = state.items.find((i) => i.id === id);
+  if (!it || it.qty + delta < 0) return;
+  const prev = { qty: it.qty, by: it.by, at: it.at };
+  it.qty += delta; it.by = state.user.name; it.at = new Date().toISOString();
+  renderItems();
+  state.pending++;
+  try {
+    const out = await api("adjust", { id: id, delta: delta });
+    if (state.pending === 1) state.items = out.items;
+  } catch (err) {
+    Object.assign(it, prev);
+    toast(err.message, true);
+  } finally {
+    state.pending--;
+    renderItems();
+  }
+}
+
+/* ---------- Add / edit dialog ---------- */
+function openDialog(item) {
+  $("#dlgTitle").textContent = item ? "Edit item" : "Add item";
+  $("#fId").value = item ? item.id : "";
+  $("#fName").value = item ? item.name : "";
+  $("#fQty").value = item ? item.qty : 1;
+  $("#fLoc").value = item ? item.location : "";
+  $("#fCat").value = item ? item.category : "";
+  $("#deleteBtn").hidden = !item;
+  $("#linkBtn").hidden = !item;
+  $("#catList").innerHTML = categories().map((c) => `<option value="${esc(c)}">`).join("");
+  $("#itemDialog").showModal();
+  $("#fName").focus();
+}
+$("#addBtn").addEventListener("click", () => openDialog(null));
+$("#cancelBtn").addEventListener("click", () => $("#itemDialog").close());
+
+$("#itemForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const id = $("#fId").value;
+  const data = { name: $("#fName").value, qty: Number($("#fQty").value), location: $("#fLoc").value, category: $("#fCat").value };
+  const btn = $("#saveBtn");
+  btn.disabled = true;
+  try {
+    const out = await api(id ? "update" : "add", id ? Object.assign({ id: id }, data) : data);
+    state.items = out.items;
+    $("#itemDialog").close();
+    renderItems();
+    toast(id ? "Changes saved." : "Item added.");
+    if (!id) flash(out.id);
+  } catch (err) {
+    toast(err.message, true);
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+$("#deleteBtn").addEventListener("click", async () => {
+  const id = $("#fId").value;
+  const it = state.items.find((i) => i.id === id);
+  if (!it || !confirm("Delete \u201C" + it.name + "\u201D? Your name will be recorded in the activity log.")) return;
+  try {
+    const out = await api("remove", { id: id });
+    state.items = out.items;
+    $("#itemDialog").close();
+    renderItems();
+    toast("Item deleted.");
+  } catch (err) {
+    toast(err.message, true);
+  }
+});
+
+$("#linkBtn").addEventListener("click", async () => {
+  const link = location.href.split("#")[0] + "#item=" + $("#fId").value;
+  try { await navigator.clipboard.writeText(link); toast("Tag link copied. Write it to an NFC tag."); }
+  catch (e) { prompt("Copy this link and write it to an NFC tag:", link); }
+});
+
+/* ---------- Jump to an item (NFC tags open links like #item=abc123) ---------- */
+function flash(id) {
+  const el = document.querySelector('[data-row="' + CSS.escape(id) + '"]');
+  if (!el) return;
+  el.scrollIntoView({ block: "center" });
+  el.classList.add("flash");
+  setTimeout(() => el.classList.remove("flash"), 2500);
+}
+function jumpToHash() {
+  const m = location.hash.match(/item=([\w-]+)/);
+  if (m) flash(m[1]);
+}
+window.addEventListener("hashchange", jumpToHash);
+
+/* ---------- Activity ---------- */
+function describe(l) {
+  const n = Math.abs(l.change);
+  const item = `<strong>${esc(l.item)}</strong>`;
+  switch (l.action) {
+    case "added": return `${esc(l.by)} added ${n} to ${item} (${l.before} to ${l.after})`;
+    case "removed": return `${esc(l.by)} took ${n} from ${item} (${l.before} to ${l.after})`;
+    case "created item": return `${esc(l.by)} created ${item} with ${l.after} in stock`;
+    case "deleted item": return `${esc(l.by)} deleted ${item} (${l.before} were in stock)`;
+    case "edited": return `${esc(l.by)} edited ${item}` + (l.before !== l.after ? ` (${l.before} to ${l.after})` : "");
+    default: return `${esc(l.by)} ${esc(l.action)} ${item}`;
+  }
+}
+async function loadActivity() {
+  $("#feed").innerHTML = '<li class="meta">Loading…</li>';
+  try {
+    const out = await api("log");
+    $("#feed").innerHTML = out.log.length
+      ? out.log.map((l) => `<li>${describe(l)}<time>${esc(when(l.at))}</time></li>`).join("")
+      : '<li class="meta">Nothing has happened yet. Changes show up here as students add and take items.</li>';
+  } catch (err) {
+    $("#feed").innerHTML = "";
+    toast(err.message, true);
+  }
+}
+
+/* ---------- Students (admin only) ---------- */
+function renderUsers(users) {
+  $("#userList").innerHTML = "<h2>Accounts</h2>" + users.map((u) => `
+    <div class="urow">
+      <div><strong>${esc(u.name)}</strong> <span class="meta">${esc(u.username)}${u.role === "admin" ? " (admin)" : ""}</span></div>
+      <div class="actions">
+        <button class="btn small" type="button" data-act="reset" data-u="${esc(u.username)}">Reset PIN</button>
+        ${u.username === state.user.username ? "" : `<button class="btn danger small" type="button" data-act="drop" data-u="${esc(u.username)}" data-n="${esc(u.name)}">Remove</button>`}
+      </div>
+    </div>`).join("");
+}
+async function loadUsers() {
+  try { renderUsers((await api("listUsers")).users); } catch (err) { toast(err.message, true); }
+}
+$("#userForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  try {
+    const out = await api("addUser", { name: $("#uName").value, username: $("#uUser").value, pin: $("#uPin").value });
+    renderUsers(out.users);
+    $("#userForm").reset();
+    toast("Account created.");
+  } catch (err) {
+    toast(err.message, true);
+  }
+});
+$("#userList").addEventListener("click", async (e) => {
+  const b = e.target.closest("[data-act]");
+  if (!b) return;
+  try {
+    if (b.dataset.act === "reset") {
+      const pin = prompt("New PIN for " + b.dataset.u + " (4 to 8 digits):");
+      if (!pin) return;
+      renderUsers((await api("resetPin", { username: b.dataset.u, pin: pin })).users);
+      toast("PIN changed.");
+    }
+    if (b.dataset.act === "drop") {
+      if (!confirm("Remove " + b.dataset.n + "? They will be signed out. Past activity keeps their name.")) return;
+      renderUsers((await api("removeUser", { username: b.dataset.u })).users);
+      toast("Account removed.");
+    }
+  } catch (err) {
+    toast(err.message, true);
+  }
+});
+
+/* ---------- Start ---------- */
+setInterval(() => {
+  if (state.token && state.tab === "items" && !document.hidden && !$("#itemDialog").open && state.pending === 0) refresh(false);
+}, 30000);
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden && state.token && state.tab === "items") refresh(false);
+});
+
+(function boot() {
+  state.token = read("ti_token");
+  try { state.user = JSON.parse(read("ti_user")); } catch (e) { state.user = null; }
+  if (state.token && state.user) enterApp(); else show("login");
+})();
+</script>
+</body>
+</html>
